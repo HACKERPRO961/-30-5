@@ -1,0 +1,7 @@
+{
+  "appId": "com.eren.asansor305",
+  "appName": "30,5",
+  "webDir": "www",
+  "backgroundColor": "#000000",
+  "android": { "allowMixedContent": false }
+}

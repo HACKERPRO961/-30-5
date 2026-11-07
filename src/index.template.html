@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>30,5</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;color:#e8e6df;font-family:'Segoe UI',Roboto,Arial,sans-serif;user-select:none}
+  #game{position:fixed;inset:0}
+  #game canvas{display:block;width:100%;height:100%}
+  #vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.55) 100%)}
+  #danger{position:fixed;inset:0;pointer-events:none;opacity:0;z-index:5;background:radial-gradient(ellipse at center,transparent 35%,rgba(150,0,0,.55) 100%)}
+  #hud{position:fixed;inset:0;pointer-events:none;opacity:0;transition:opacity .4s}
+  #hud.on{opacity:1}
+  #cross{position:absolute;left:50%;top:50%;width:5px;height:5px;margin:-2.5px;border-radius:50%;background:rgba(255,255,255,.65);box-shadow:0 0 4px #000}
+  #prompt{position:absolute;left:50%;top:57%;transform:translateX(-50%);font-size:18px;text-shadow:0 1px 4px #000;white-space:nowrap}
+  #prompt b{display:inline-block;min-width:24px;text-align:center;padding:1px 7px;margin-right:8px;border:1px solid rgba(255,255,255,.7);border-radius:5px;font-size:14px}
+  #prompt.locked{opacity:.55}
+  #holdbar{position:absolute;left:50%;top:62%;width:150px;height:5px;margin-left:-75px;background:rgba(255,255,255,.18);border-radius:3px;opacity:0}
+  #holdbar i{display:block;height:100%;width:0;background:#f2c14e;border-radius:3px}
+  #tasks{position:absolute;left:18px;top:18px;width:290px;padding:12px 14px;background:rgba(10,10,12,.55);border-left:3px solid #f2c14e;font-size:14px;line-height:1.35}
+  #tasks h4{font-size:12px;letter-spacing:.14em;color:#f2c14e;margin-bottom:6px;font-weight:600}
+  #tasks ul{list-style:none}
+  #tasks li{padding:2px 0 2px 20px;position:relative}
+  #tasks li:before{content:'';position:absolute;left:0;top:6px;width:11px;height:11px;border:1.5px solid #aaa;border-radius:2px}
+  #tasks li.done{opacity:.45;text-decoration:line-through}
+  #tasks li.done:before{background:#f2c14e;border-color:#f2c14e}
+  #sub{position:absolute;left:50%;bottom:8%;transform:translateX(-50%);max-width:min(760px,86vw);text-align:center;font-size:19px;line-height:1.4;text-shadow:0 1px 5px #000,0 0 12px #000;opacity:0;transition:opacity .35s}
+  #sub.on{opacity:1}
+  #sub small{display:block;font-size:12px;letter-spacing:.12em;color:#f2c14e;margin-bottom:3px}
+  #bat{position:absolute;right:22px;bottom:22px;display:none;align-items:center;gap:8px;font-size:11px;letter-spacing:.2em;color:#aaa}
+  body.horror #bat{display:flex}
+  #bot{position:absolute;right:22px;bottom:66px;display:none;align-items:center;gap:8px;font-size:11px;letter-spacing:.2em;color:#aaa}
+  body.horror #bot{display:flex}
+  #bot b{font-size:14px;color:#9fd;letter-spacing:0}
+  #tc{display:none;position:fixed;inset:0;z-index:20;pointer-events:none;user-select:none;-webkit-user-select:none;touch-action:none}
+  #tc>*{pointer-events:auto}
+  #tcLook{position:absolute;right:0;top:0;width:55%;height:100%}
+  #tcStick{position:absolute;left:4vmin;bottom:5vmin;width:30vmin;height:30vmin;max-width:170px;max-height:170px;border-radius:50%;background:rgba(255,255,255,.08);border:2px solid rgba(255,255,255,.25)}
+  #tcStick i{position:absolute;left:50%;top:50%;width:42%;height:42%;margin:-21% 0 0 -21%;border-radius:50%;background:rgba(255,255,255,.3)}
+  #tcBtns{position:absolute;right:3vmin;bottom:4vmin;display:grid;grid-template-columns:repeat(3,auto);gap:10px;pointer-events:none}
+  #tcBtns button{pointer-events:auto;min-width:58px;height:58px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(20,20,24,.55);color:#eee;font:600 13px system-ui;touch-action:none}
+  #tcBtns button.big{width:76px;height:76px;font-size:22px;border-color:#f2c14e;color:#f2c14e}
+  #tcBtns button.on{background:rgba(242,193,78,.45)}
+  #tcPause{position:absolute;right:12px;top:12px;width:44px;height:44px;border-radius:10px;border:1px solid #888;background:rgba(0,0,0,.5);color:#eee;font:700 16px system-ui}
+  body.touch #bFull,body.touch .keys{display:none}
+  body.touch:not(.horror) #tcBtns [data-a=throw]{display:none}
+  body.touch #tasks{transform:scale(.72);transform-origin:top left}
+  body.touch #bat,body.touch #stam,body.touch #bot{bottom:auto;top:60px;right:12px}
+  body.touch #stam{top:80px}
+  body.touch #bot{top:100px}
+  #demo{position:fixed;right:14px;top:10px;z-index:50;font-size:11px;letter-spacing:.3em;color:#f2c14e;opacity:.8;pointer-events:none;border:1px solid #f2c14e66;padding:3px 8px;background:#0008}
+  #stam{position:absolute;right:22px;bottom:44px;display:none;align-items:center;gap:8px;font-size:11px;letter-spacing:.2em;color:#aaa}
+  body.horror #stam{display:flex}
+  #stam b{display:block;width:90px;height:8px;border:1px solid #888;padding:1px}
+  #stam i{display:block;height:100%;width:100%;background:#9ec8e8}
+  #bat b{display:block;width:90px;height:8px;border:1px solid #888;padding:1px}
+  #bat i{display:block;height:100%;width:100%;background:#f2c14e}
+  #toast{position:absolute;left:50%;top:70%;transform:translateX(-50%);padding:7px 14px;background:rgba(0,0,0,.6);border-radius:6px;font-size:15px;opacity:0;transition:opacity .3s}
+  #toast.on{opacity:1}
+  #mgwrap{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;background:rgba(0,0,0,.72)}
+  #mgwrap.on{display:flex}
+  #mg{width:min(92vw,720px);height:auto;border:2px solid #444;border-radius:8px;background:#111}
+  #mghint{margin-top:12px;font-size:15px;color:#ccc}
+  #note{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(0,0,0,.6)}
+  #note.on{display:flex}
+  #note .paper,#pages .paper{width:min(88vw,520px);padding:26px 30px;background:#e9e2cb;color:#2a2418;border-radius:3px;box-shadow:0 10px 40px #000;transform:rotate(-.6deg);line-height:1.55;font-size:17px;font-family:Georgia,'Times New Roman',serif}
+  #note h3{font-size:19px;margin-bottom:10px;border-bottom:1px solid #8a7f60;padding-bottom:6px}
+  #note .close{margin-top:14px;font-size:13px;color:#6b614a;text-align:right;font-family:'Segoe UI',Arial,sans-serif}
+  #fade{position:fixed;inset:0;background:#000;opacity:1;pointer-events:none;transition:opacity .8s;z-index:20}
+  #card{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;opacity:0;transition:opacity .6s;z-index:21;pointer-events:none;text-align:center;padding:0 6vw}
+  #card.on{opacity:1}
+  #card .big{font-size:clamp(28px,5vw,54px);letter-spacing:.22em;font-weight:300}
+  #card .small{margin-top:14px;font-size:clamp(14px,2vw,20px);color:#b9b6aa;letter-spacing:.08em}
+  body.playing{cursor:none}
+  .screen{cursor:default;position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;flex-direction:column;background:radial-gradient(ellipse at center,#15171c 0%,#050506 80%);text-align:center}
+  .screen.hide{display:none}
+  #pages{z-index:55;background:rgba(0,0,0,.8);cursor:pointer}
+  #pages .paper{max-width:560px;max-height:78vh;overflow:auto;text-align:left;padding:28px 34px}
+  #pages .paper p{margin-bottom:12px}
+  #warn{z-index:60;background:#050506}
+  #warn .wp{max-width:620px;padding:0 24px}
+  #warn h2{font-weight:300;letter-spacing:.3em;font-size:26px;color:#d33;margin-bottom:22px}
+  #warn #wp2 h2{color:#f2c14e}
+  #warn p{color:#bdbab0;line-height:1.7;font-size:16px;margin-bottom:16px}
+  #warn p.sm{font-size:13px;color:#8d8b82}
+  #warn .mail{color:#f2c14e;font-size:18px;letter-spacing:.04em}
+  .wbtn{margin-top:18px;background:none;border:1px solid #888;color:#eee;padding:11px 26px;font:inherit;font-size:15px;letter-spacing:.1em;cursor:pointer;border-radius:4px}
+  .wbtn:hover{border-color:#f2c14e;color:#f2c14e}
+  .screen h1{font-size:clamp(60px,12vw,140px);font-weight:200;letter-spacing:.12em;color:#e8e6df}
+  .screen h1 span{color:#f2c14e}
+  .screen p.sub{margin:6px 0 34px;color:#8d8b82;letter-spacing:.3em;font-size:13px}
+  .screen button{display:block;margin:7px auto;min-width:260px;padding:12px 22px;background:transparent;color:#e8e6df;border:1px solid #555;border-radius:4px;font-size:16px;letter-spacing:.08em;cursor:pointer;transition:.15s}
+  .screen button:hover{background:#f2c14e;color:#111;border-color:#f2c14e}
+  .screen .keys{margin-top:30px;font-size:13px;color:#8d8b82;line-height:1.8}
+  .screen .days{display:flex;gap:8px;justify-content:center}
+  .screen .days button{min-width:0;padding:8px 16px;font-size:14px;margin:0}
+  .chap{margin-top:22px;padding-top:16px;border-top:1px solid #2a2c31;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .chap span{font-size:11px;letter-spacing:.32em;color:#6c6a62;margin-bottom:2px}
+  .screen h1 span{animation:flick 6s infinite}
+  @keyframes flick{0%,92%,100%{opacity:1}93%{opacity:.3}94%{opacity:1}96%{opacity:.5}97%{opacity:1}}
+  #grain{position:fixed;inset:-50%;width:200%;height:200%;pointer-events:none;z-index:4;opacity:0;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");animation:grain .5s steps(5) infinite;transition:opacity 1s}
+  body.horror #grain{opacity:.07}
+  @keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-3%,2%)}40%{transform:translate(2%,-3%)}60%{transform:translate(-2%,-1%)}80%{transform:translate(3%,3%)}100%{transform:translate(0,0)}}
+  #menu{align-items:flex-start;text-align:left;padding-left:min(7vw,90px);justify-content:center;pointer-events:none;background:linear-gradient(90deg,rgba(0,0,0,.92) 0%,rgba(0,0,0,.7) 26%,rgba(0,0,0,0) 46%)}
+  #menu > *{pointer-events:auto}
+  #menu h1{font-size:clamp(54px,9vw,120px);line-height:1}
+  #menu p.sub{margin:4px 0 22px}
+  #menu button{margin:6px 0;min-width:250px;text-align:left}
+  #menu .days{justify-content:flex-start}
+  #menu .chap{align-items:flex-start;margin-top:14px;padding-top:12px}
+  #menu .days button{min-width:0;padding:8px 14px;font-size:14px}
+  #menu .keys{margin-top:18px;max-width:340px;font-size:12px;line-height:1.6}
+  .set{display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:12px;color:#8d8b82;letter-spacing:.08em}
+  .set label{display:flex;justify-content:space-between;gap:14px;align-items:center;width:250px}
+  .set input{width:130px;accent-color:#f2c14e}
+  .hint{position:fixed;right:5vw;bottom:4vh;color:#5a1a1a;font-style:italic;letter-spacing:.2em;font-size:13px;pointer-events:none!important}
+  #achv{z-index:58;background:rgba(3,3,4,.96)}
+  .stg{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 10px}
+  .stg div{border:1px solid #26262a;padding:8px;text-align:center;font-size:12px;color:#8d8b82;letter-spacing:.08em}
+  .stg b{display:block;font-size:20px;color:#f2c14e;font-weight:400;margin-bottom:2px}
+  .ach{display:flex;gap:12px;align-items:center;padding:9px 0;border-bottom:1px solid #1d1d20;color:#cfccc2}
+  .ach.lock{opacity:.4}
+  .ach i{font-style:normal;width:26px;text-align:center;color:#f2c14e}
+  .ach small{color:#8d8b82;display:block}
+  #settings,#market,#credits{z-index:58;background:rgba(3,3,4,.96)}
+  .panel{width:min(92vw,640px);max-height:88vh;overflow:auto;text-align:left;padding:8px 26px 20px}
+  .panel h2{font-weight:300;letter-spacing:.3em;text-align:center;margin:10px 0 14px;color:#e8e6df}
+  .panel h4{letter-spacing:.2em;font-weight:400;color:#f2c14e;font-size:12px;margin:16px 0 8px;text-transform:uppercase}
+  .panel .row{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:6px 0;border-bottom:1px solid #1d1d20;font-size:15px;color:#cfccc2}
+  .panel .row input[type=range]{flex:1;max-width:240px;accent-color:#f2c14e}
+  .panel .row b{min-width:48px;text-align:right;font-weight:400;color:#8d8b82}
+  .panel .row input[type=checkbox]{width:20px;height:20px;accent-color:#f2c14e}
+  .panel .row span{flex:1}
+  .panel .kbtn{margin:0;min-width:130px;padding:6px 12px;font-size:14px}
+  .panel .kbtn.wait{border-color:#f2c14e;color:#f2c14e}
+  .panel .kbtn.rst{margin-top:12px;min-width:0}
+  .dsel{display:flex;gap:10px;margin-bottom:8px}
+  .dsel button{margin:0!important;min-width:0!important;flex:1;padding:9px 12px!important;font-size:15px!important}
+  .dsel button.on{border-color:#f2c14e;color:#f2c14e}
+  .ddesc{color:#8d8b82;display:block;line-height:1.5}
+  .pbar{display:flex;gap:12px;justify-content:center;margin-top:20px}
+  .pbar button{margin:0!important;min-width:140px!important}
+  .item{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:11px 0;border-bottom:1px solid #1d1d20;color:#cfccc2}
+  .item small{color:#8d8b82}
+  .item .lv{color:#f2c14e;letter-spacing:.1em;margin-left:6px}
+  .item button{margin:0!important;min-width:110px!important;padding:8px 12px!important;font-size:14px!important}
+  .item button:disabled{opacity:.4;cursor:default}
+  #credits p{margin:12px 0;color:#bdbab0;line-height:1.6}
+  #credits p.sm{font-size:13px;color:#8d8b82}
+  #pause h2{font-weight:300;letter-spacing:.2em;margin-bottom:18px}
+</style>
+</head>
+<body>
+<div id="game"></div>
+<div id="vignette"></div>
+<div id="demo">DEMO SÜRÜMÜ</div>
+<div id="danger"></div>
+<div id="grain"></div>
+<div id="hud">
+  <div id="cross"></div>
+  <div id="prompt"></div>
+  <div id="holdbar"><i></i></div>
+  <div id="tasks"><h4>İŞ EMRİ</h4><ul></ul></div>
+  <div id="bot"><span>ŞİŞE [G]</span><b id="botn">0</b></div>
+  <div id="bat"><span>PİL</span><b><i id="batfill"></i></b></div>
+  <div id="stam"><span>NEFES</span><b><i id="stamfill"></i></b></div>
+  <div id="sub"></div>
+  <div id="toast"></div>
+</div>
+<div id="mgwrap"><canvas id="mg" width="720" height="440"></canvas><div id="mghint"></div></div>
+<div id="note"><div class="paper"><h3></h3><div class="body"></div><p class="close">[E] kapat</p></div></div>
+<div id="fade"></div>
+<div id="card"><div class="big"></div><div class="small"></div></div>
+
+<div id="warn" class="screen">
+  <div class="wp" id="wp1">
+    <h2>UYARI</h2>
+    <p>Bu bir <b>korku oyunudur</b>.<br>Ani yüksek sesler, ani korkutma sahneleri (jumpscare), karanlık ortamlar ve yanıp sönen ışıklar içerir.</p>
+    <p>Kalp rahatsızlığı, epilepsi veya şiddetli korku hassasiyeti varsa dikkatli oynayın.<br>Kulaklıkla oynarsan ses seviyesini düşük başlat.</p>
+    <button class="wbtn" data-n="1">Anladım, devam</button>
+  </div>
+  <div class="wp" id="wp2" style="display:none">
+    <h2>30,5 · DEMO SÜRÜMÜ</h2>
+    <p>Bu oyun henüz <b>demo</b> aşamasındadır ve hatalar (bug), eksikler ya da dengesiz bölümler içerebilir.</p>
+    <p>Bir hata ile karşılaşırsan lütfen şu adrese bildir:<br><b class="mail" id="wmail"></b></p>
+    <p class="sm">Geri bildirimin oyunu geliştirmeme yardım eder. Oynadığın için teşekkürler!</p>
+    <button class="wbtn" data-n="2">Oyuna başla</button>
+  </div>
+</div>
+<div id="pages" class="screen hide"><div class="paper"><h3>Günlük Sayfaları</h3><div class="body" id="pgbody"></div><p class="close">[tıkla] kapat</p></div></div>
+<div id="menu" class="screen">
+  <h1>30<span>,</span>5</h1>
+  <p class="sub">ASANSÖR TAMİRCİSİNİN GÜNLÜĞÜ</p>
+  <p class="sub" style="color:#f2c14e;margin-top:4px">DEMO SÜRÜMÜ · yapım aşamasında</p>
+  <button id="bNew">Yeni Oyun</button>
+  <button id="bCont" style="display:none">Devam Et</button>
+  <button id="bHorCont" style="display:none">Karanlığa Dön</button>
+  <button id="bFull">Tam Ekran (F)</button>
+  <div class="days" style="margin-top:14px"><button id="bPages">Sayfalar</button></div>
+  <div class="days" style="margin-top:12px"><button id="bSet">Ayarlar</button><button id="bMarket">Market</button><button id="bAch">Başarımlar</button><button id="bCred">Krediler</button></div>
+  <div class="days" style="margin-top:12px"><button id="bQuit">Oyundan Çık</button></div>
+  <div class="keys">Tuşlar Ayarlar'dan değiştirilebilir. Oyunda Esc ile duraklat.</div>
+  <p class="hint">Kafeslere dokunma.</p>
+</div>
+<div id="pause" class="screen hide">
+  <h2>DURAKLATILDI</h2>
+  <button id="bResume">Devam Et</button>
+  <button id="bPSet">Ayarlar</button>
+  <button id="bPMenu">Ana Menüye Dön</button>
+  <button id="bPQuit">Oyundan Çık</button>
+  <p class="sub" style="margin-top:14px">Boş bir yere tıklayarak da devam edebilirsin</p>
+</div>
+<div id="settings" class="screen hide"><div class="panel">
+  <h2>AYARLAR</h2><div id="setBody"></div>
+  <div class="pbar"><button id="setReset">Ayarları sıfırla</button><button class="back">Geri</button></div>
+</div></div>
+<div id="market" class="screen hide"><div class="panel">
+  <h2>MARKET</h2><p class="sub">Kuruşların: <b id="coinN" style="color:#f2c14e">0</b> · Her gün uyuyunca +10, ilk bulduğun her sayfa +5, kaçış +100</p>
+  <div id="shopBody"></div>
+  <div class="pbar"><button class="back">Geri</button></div>
+</div></div>
+<div id="achv" class="screen hide"><div class="panel">
+  <h2>BAŞARIMLAR</h2><div id="statBox"></div><div id="achBody"></div>
+  <div class="pbar"><button class="back">Geri</button></div>
+</div></div>
+<div id="credits" class="screen hide"><div class="panel" style="text-align:center">
+  <h2>KREDİLER</h2>
+  <p>Oyun fikri, yönetim, tasarım ve kodlama<br><b style="font-size:22px;letter-spacing:.15em">EREN ENSAR</b></p>
+  <div class="pbar"><button class="back">Geri</button></div>
+</div></div>
+
+<script>/*__GAME__*/</script>
+</body>
+</html>

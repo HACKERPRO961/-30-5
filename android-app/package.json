@@ -1,0 +1,11 @@
+{
+  "name": "asansor-30-5-android",
+  "version": "0.2.0",
+  "private": true,
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "@capacitor/core": "^8.0.0"
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "name": "asansor-30-5",
+  "version": "0.2.0",
+  "description": "30,5 — 3B korku oyunu (demo)",
+  "type": "module",
+  "main": "main.cjs",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node build.mjs && electron .",
+    "dist": "node build.mjs && electron-builder --win --linux",
+    "exe": "node build.mjs && electron-builder --win dir",
+    "kur": "node build.mjs && electron-builder --win nsis"
+  },
+  "build": {
+    "appId": "com.eren.asansor305",
+    "productName": "30,5",
+    "files": [
+      "main.cjs",
+      "dist/oyun.html",
+      "package.json",
+      "build/icon.png"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "artifactName": "${productName}-${version}.${ext}",
+    "icon": "build/icon.ico",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "shortcutName": "30,5",
+      "language": "1055",
+      "artifactName": "30,5-Kurulum-${version}.${ext}"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.0.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0",
+    "three": "^0.187.0"
+  },
+  "author": "Eren Ensar"
+}
